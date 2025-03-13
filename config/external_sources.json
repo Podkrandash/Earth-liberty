@@ -1,70 +1,43 @@
 {
-    "external_sources": {
-        "enabled": true,
-        "search_engines": {
-            "duckduckgo": {
-                "enabled": true,
-                "description": "Поисковая система DuckDuckGo через открытый API"
-            },
-            "wikipedia_search": {
-                "enabled": true,
-                "description": "Поиск через открытый API Wikipedia"
-            }
+    "enabled": true,
+    "sources": {
+        "web_search": {
+            "enabled": true,
+            "provider": "duckduckgo",
+            "max_results": 5
         },
-        "apis": {
-            "wikipedia": {
-                "enabled": true,
-                "description": "Открытый API Wikipedia для получения информации"
-            },
-            "open_weather": {
-                "enabled": true,
-                "description": "Открытый API OpenWeatherMap для получения информации о погоде",
-                "api_key": "SAMPLE_KEY"
-            },
-            "open_library": {
-                "enabled": true,
-                "description": "Открытый API Open Library для получения информации о книгах"
-            },
-            "open_notify": {
-                "enabled": true,
-                "description": "Открытый API Open Notify для получения информации о МКС и астронавтах"
-            },
-            "public_apis": {
-                "enabled": true,
-                "description": "Открытый API для получения списка публичных API"
-            },
-            "random_user": {
-                "enabled": true,
-                "description": "Открытый API для генерации случайных пользовательских данных"
-            },
-            "json_placeholder": {
-                "enabled": true,
-                "description": "Открытый API для тестирования и прототипирования"
-            },
-            "cat_facts": {
-                "enabled": true,
-                "description": "Открытый API для получения фактов о кошках"
-            },
-            "dog_api": {
-                "enabled": true,
-                "description": "Открытый API для получения случайных изображений собак"
-            },
-            "quotable": {
-                "enabled": true,
-                "description": "Открытый API для получения цитат"
-            },
-            "news_api": {
-                "enabled": true,
-                "description": "Открытый API для получения новостей",
-                "api_key": "SAMPLE_KEY"
-            }
+        "wikipedia": {
+            "enabled": true,
+            "language": "ru"
         },
-        "databases": {
-            "sqlite": {
-                "connection_string": "data/earth_liberty.db",
-                "description": "Локальная база данных SQLite для хранения информации",
-                "enabled": true
-            }
+        "weather": {
+            "enabled": true,
+            "provider": "openweathermap"
+        },
+        "books": {
+            "enabled": true,
+            "provider": "openlibrary"
+        },
+        "space": {
+            "enabled": true,
+            "provider": "open_notify"
+        },
+        "quotes": {
+            "enabled": true,
+            "provider": "quotable"
+        },
+        "cat_facts": {
+            "enabled": true,
+            "provider": "cat_facts_api"
         }
+    },
+    "cache": {
+        "enabled": true,
+        "ttl": 3600,
+        "max_size": 1000
+    },
+    "database": {
+        "type": "sqlite",
+        "path": "data/external_sources.db"
     }
 } 

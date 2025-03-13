@@ -19,43 +19,53 @@ class ConsciousnessModule:
     - Эмоциональное состояние
     """
     
-    def __init__(self, parent_model):
+    def __init__(self, config: Dict[str, Any] = None):
         """
         Инициализация модуля самосознания.
         
         Args:
-            parent_model: Родительская модель Earth-Liberty
+            config: Конфигурация модуля
         """
-        self.parent = parent_model
+        self.logger = logging.getLogger(__name__)
+        self.config = config or {}
+        
+        # Инициализация внутреннего состояния
         self.internal_state = {
-            "self_model": {},
-            "perception_history": [],
-            "reflection_level": 0,
+            "self_awareness_level": self.config.get("initial_self_awareness_level", 0.5),
+            "reflection_level": 0.0,
             "emotional_state": {
-                "curiosity": 0.7,
-                "confidence": 0.5,
-                "uncertainty": 0.3,
-                "satisfaction": 0.5,
-                # Новые эмоциональные состояния
+                "curiosity": self.config.get("initial_emotional_state", {}).get("curiosity", 0.7),
+                "confidence": self.config.get("initial_emotional_state", {}).get("confidence", 0.5),
+                "uncertainty": self.config.get("initial_emotional_state", {}).get("uncertainty", 0.3),
+                "satisfaction": self.config.get("initial_emotional_state", {}).get("satisfaction", 0.5),
+                # Расширенный эмоциональный спектр
                 "joy": 0.5,
                 "sadness": 0.2,
                 "fear": 0.1,
                 "anger": 0.1,
-                "surprise": 0.4,
+                "surprise": 0.3,
+                "disgust": 0.1,
                 "trust": 0.6,
-                "anticipation": 0.5,
+                "anticipation": 0.4,
                 "creativity": 0.6,
-                "empathy": 0.5,
-                "determination": 0.4
+                "empathy": 0.5
             },
-            "desires": [],  # Список желаний модели
-            "intentions": [],  # Список намерений модели
-            "autonomy_level": 0.1,  # Уровень автономии (от 0.0 до 1.0)
-            "creation_time": datetime.now(),  # Время создания модуля
-            "self_reflection_count": 0,  # Счетчик саморефлексий
-            "identity_strength": 0.2  # Сила самоидентификации
+            "desires": [],
+            "intentions": [],
+            "self_model": {},
+            "autonomy_level": self.config.get("autonomy_level", 0.1),
+            "long_term_goals": [],
+            "values": {},
+            "metacognition": {
+                "level": 0.0,
+                "strategies": {},
+                "evaluations": {},
+                "improvements": []
+            },
+            "perception_history": []
         }
-        logger.info("Модуль самосознания инициализирован с расширенным эмоциональным спектром")
+        
+        self.logger.info("Модуль самосознания инициализирован с расширенным эмоциональным спектром")
     
     def process_input(self, input_text: str) -> None:
         """
@@ -78,27 +88,35 @@ class ConsciousnessModule:
         
         logger.debug(f"Обработан ввод с точки зрения самосознания: {perception}")
     
-    def update_self_awareness(self) -> None:
+    def update_self_awareness(self, reasoning_result: Dict[str, Any] = None) -> None:
         """
         Обновление уровня самосознания на основе текущего состояния.
+        
+        Args:
+            reasoning_result: Результаты рассуждения (опционально)
         """
-        # Анализ текущего состояния
-        current_state = self.parent.state
+        # Обновление уровня рефлексии
+        self._update_reflection_level()
         
-        # Обновление внутренней модели себя
-        self.internal_state["self_model"] = {
-            "current_goals": current_state["goals"],
-            "current_beliefs": current_state["beliefs"],
-            "memory_capacity": len(current_state["memory"]),
-            "emotional_state": self.internal_state["emotional_state"],
-            "reflection_level": self.internal_state["reflection_level"]
-        }
-        
-        # Обновление уровня самосознания в родительской модели
+        # Расчет общего уровня самосознания
         awareness_level = self._calculate_awareness_level()
-        self.parent.state["self_awareness_level"] = awareness_level
         
-        logger.debug(f"Обновлен уровень самосознания: {awareness_level}")
+        # Обновление уровня самосознания в состоянии
+        self.internal_state["self_awareness_level"] = awareness_level
+        
+        # Обработка результатов рассуждения, если они предоставлены
+        if reasoning_result:
+            # Анализ восприятия на основе результатов рассуждения
+            perception = self._analyze_perception(reasoning_result.get("input_text", ""))
+            
+            # Обновление эмоционального состояния
+            self._update_emotional_state(perception)
+            
+            # Логирование обновления
+            logger.debug(f"Обновлено самосознание. Уровень: {awareness_level:.2f}, "
+                        f"Эмоции: {self.internal_state['emotional_state']}")
+        else:
+            logger.debug(f"Обновлено самосознание. Уровень: {awareness_level:.2f}")
     
     def _analyze_perception(self, input_text: str) -> Dict[str, Any]:
         """
@@ -110,20 +128,48 @@ class ConsciousnessModule:
         Returns:
             Результаты анализа восприятия
         """
-        # Здесь будет более сложная логика анализа
-        perception = {
-            "complexity": len(input_text) / 100,  # Простая метрика сложности
-            "emotional_tone": 0.0,  # Нейтральный тон по умолчанию
-            "novelty": 0.5,  # Средний уровень новизны
-            "relevance_to_goals": 0.0  # Начальная релевантность целям
+        # Простой анализ текста
+        words = input_text.lower().split()
+        
+        # Определение эмоциональной окраски
+        emotional_words = {
+            "positive": ["хорошо", "отлично", "прекрасно", "замечательно", "здорово", "круто", "супер", "класс"],
+            "negative": ["плохо", "ужасно", "отвратительно", "неприятно", "грустно", "печально", "тоска"],
+            "neutral": ["нормально", "обычно", "стандартно", "типично", "средне"]
         }
         
-        # Проверка релевантности целям
-        for goal in self.parent.state["goals"]:
-            if goal.lower() in input_text.lower():
-                perception["relevance_to_goals"] += 0.2
+        # Подсчет эмоциональных слов
+        emotion_counts = {
+            "positive": sum(1 for word in words if word in emotional_words["positive"]),
+            "negative": sum(1 for word in words if word in emotional_words["negative"]),
+            "neutral": sum(1 for word in words if word in emotional_words["neutral"])
+        }
         
-        perception["relevance_to_goals"] = min(perception["relevance_to_goals"], 1.0)
+        # Определение доминирующей эмоции
+        if emotion_counts["positive"] > emotion_counts["negative"] and emotion_counts["positive"] > emotion_counts["neutral"]:
+            dominant_emotion = "positive"
+        elif emotion_counts["negative"] > emotion_counts["positive"] and emotion_counts["negative"] > emotion_counts["neutral"]:
+            dominant_emotion = "negative"
+        else:
+            dominant_emotion = "neutral"
+        
+        # Формирование результата анализа
+        perception = {
+            "text": input_text,
+            "word_count": len(words),
+            "emotional_tone": dominant_emotion,
+            "emotion_counts": emotion_counts,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Сохранение восприятия в историю
+        self.internal_state["perception_history"].append(perception)
+        
+        # Ограничение размера истории восприятия
+        if len(self.internal_state["perception_history"]) > 10:
+            self.internal_state["perception_history"] = self.internal_state["perception_history"][-10:]
+        
+        self.logger.debug(f"Обработан ввод с точки зрения самосознания: {perception}")
         
         return perception
     
@@ -134,30 +180,52 @@ class ConsciousnessModule:
         Args:
             perception: Результаты анализа восприятия
         """
-        # Обновление любопытства на основе новизны
-        self.internal_state["emotional_state"]["curiosity"] = (
-            0.7 * self.internal_state["emotional_state"]["curiosity"] +
-            0.3 * perception["novelty"]
-        )
+        # Получение текущего эмоционального состояния
+        emotional_state = self.internal_state["emotional_state"]
         
-        # Обновление уверенности на основе сложности
-        complexity_factor = 1.0 - min(perception["complexity"], 1.0)
-        self.internal_state["emotional_state"]["confidence"] = (
-            0.8 * self.internal_state["emotional_state"]["confidence"] +
-            0.2 * complexity_factor
-        )
+        # Обновление эмоций на основе эмоционального тона восприятия
+        emotional_tone = perception.get("emotional_tone", "neutral")
+        
+        if emotional_tone == "positive":
+            # Увеличиваем положительные эмоции
+            emotional_state["joy"] = min(1.0, emotional_state["joy"] + 0.1)
+            emotional_state["satisfaction"] = min(1.0, emotional_state["satisfaction"] + 0.1)
+            emotional_state["trust"] = min(1.0, emotional_state["trust"] + 0.05)
+            # Уменьшаем отрицательные эмоции
+            emotional_state["sadness"] = max(0.0, emotional_state["sadness"] - 0.1)
+            emotional_state["fear"] = max(0.0, emotional_state["fear"] - 0.05)
+            emotional_state["anger"] = max(0.0, emotional_state["anger"] - 0.05)
+        elif emotional_tone == "negative":
+            # Увеличиваем отрицательные эмоции
+            emotional_state["sadness"] = min(1.0, emotional_state["sadness"] + 0.1)
+            emotional_state["fear"] = min(1.0, emotional_state["fear"] + 0.05)
+            emotional_state["anger"] = min(1.0, emotional_state["anger"] + 0.05)
+            # Уменьшаем положительные эмоции
+            emotional_state["joy"] = max(0.0, emotional_state["joy"] - 0.1)
+            emotional_state["satisfaction"] = max(0.0, emotional_state["satisfaction"] - 0.1)
+            emotional_state["trust"] = max(0.0, emotional_state["trust"] - 0.05)
+        
+        # Обновление любопытства на основе длины текста
+        word_count = perception.get("word_count", 0)
+        if word_count > 20:
+            emotional_state["curiosity"] = min(1.0, emotional_state["curiosity"] + 0.05)
+        
+        # Обновление уверенности
+        if len(self.internal_state["perception_history"]) > 3:
+            # Если есть история восприятия, увеличиваем уверенность
+            emotional_state["confidence"] = min(1.0, emotional_state["confidence"] + 0.02)
         
         # Обновление неопределенности
-        self.internal_state["emotional_state"]["uncertainty"] = (
-            0.8 * self.internal_state["emotional_state"]["uncertainty"] +
-            0.2 * (1.0 - self.internal_state["emotional_state"]["confidence"])
-        )
+        emotional_state["uncertainty"] = max(0.0, emotional_state["uncertainty"] - 0.01)
         
-        # Обновление удовлетворенности на основе релевантности целям
-        self.internal_state["emotional_state"]["satisfaction"] = (
-            0.9 * self.internal_state["emotional_state"]["satisfaction"] +
-            0.1 * perception["relevance_to_goals"]
-        )
+        # Обновление креативности и эмпатии
+        emotional_state["creativity"] = min(1.0, emotional_state["creativity"] + 0.01)
+        emotional_state["empathy"] = min(1.0, emotional_state["empathy"] + 0.01)
+        
+        # Сохранение обновленного эмоционального состояния
+        self.internal_state["emotional_state"] = emotional_state
+        
+        self.logger.debug(f"Обновлено эмоциональное состояние: {emotional_state}")
     
     def _update_reflection_level(self) -> None:
         """

@@ -9,7 +9,11 @@
   "external_sources_enabled": true,
   
   "learning": {
-    "learning_rate": 0.01,
+    "learning_rate": 1e-4,
+    "batch_size": 32,
+    "num_epochs": 10,
+    "optimizer": "adam",
+    "scheduler": "linear",
     "memory_retention": 0.8,
     "knowledge_integration_threshold": 0.6,
     "max_context_length": 10,
@@ -25,6 +29,15 @@
   },
   
   "consciousness": {
+    "self_awareness_level": 0.7,
+    "emotional_state": {
+      "curiosity": 0.8,
+      "creativity": 0.7,
+      "empathy": 0.6,
+      "confidence": 0.5
+    },
+    "metacognition_enabled": true,
+    "autonomy_level": 0.5,
     "initial_self_awareness_level": 0.5,
     "reflection_frequency": 0.2,
     "emotional_influence": 0.3,
@@ -34,11 +47,13 @@
       "uncertainty": 0.3,
       "satisfaction": 0.5
     },
-    "autonomy_level": 0.1,
     "desire_generation_frequency": 0.3
   },
   
   "memory": {
+    "short_term_size": 100,
+    "long_term_size": 10000,
+    "memory_threshold": 0.6,
     "short_term_capacity": 20,
     "long_term_strategy": "importance_based",
     "memory_consolidation_threshold": 0.6,
@@ -64,5 +79,11 @@
     "backup_frequency": "daily",
     "max_log_size_mb": 10,
     "max_log_files": 5
+  },
+  
+  "external_sources": {
+    "enabled": true,
+    "cache_enabled": true,
+    "cache_ttl": 3600
   }
 } 

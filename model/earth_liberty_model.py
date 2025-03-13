@@ -34,8 +34,15 @@ class EarthLibertyModel:
         Args:
             config_path: Путь к конфигурационному файлу модели
         """
-        self.config_path = config_path
-        self.config = self._load_config()
+        self._setup_logging()
+        self.logger = logging.getLogger(__name__)
+        
+        try:
+            self.config_path = config_path
+            self.config = self._load_config()
+        except Exception as e:
+            self.logger.error(f"Ошибка при загрузке конфигурации: {str(e)}")
+            raise
         
         # Инициализация компонентов
         self._initialize_components()
@@ -54,18 +61,28 @@ class EarthLibertyModel:
             "autonomous_mode": self.config.get("autonomous_mode", False)
         }
         
-        logger.info(f"Модель Earth-Liberty v{self.state['version']} инициализирована")
+        self.logger.info(f"Модель Earth-Liberty v{self.state['version']} инициализирована")
     
+    def _setup_logging(self):
+        """
+        Настройка логирования
+        """
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('logs/earth_liberty.log'),
+                logging.StreamHandler()
+            ]
+        )
+        
+        # Создаем директорию для логов, если её нет
+        os.makedirs('logs', exist_ok=True)
+
     def _initialize_components(self) -> None:
         """
         Инициализация компонентов модели.
         """
-        # Инициализация логгера
-        self._setup_logging()
-        
-        # Загрузка конфигурации
-        self._load_config()
-        
         # Инициализация компонентов
         self.learning_module = LearningModule(self.config.get("learning", {}))
         self.reasoning_module = ReasoningModule(self.config.get("reasoning", {}))
@@ -97,7 +114,7 @@ class EarthLibertyModel:
             "is_connected_to_external_sources": self.config.get("use_external_sources", False)
         }
         
-        logger.info("Компоненты модели инициализированы")
+        self.logger.info("Компоненты модели инициализированы")
 
     def _load_config(self) -> Dict[str, Any]:
         """
@@ -110,21 +127,29 @@ class EarthLibertyModel:
             if os.path.exists(self.config_path):
                 with open(self.config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
-                logger.debug(f"Конфигурация загружена из {self.config_path}")
+                self.logger.debug(f"Конфигурация загружена из {self.config_path}")
                 return config
             else:
-                logger.warning(f"Файл конфигурации {self.config_path} не найден. Используются настройки по умолчанию.")
+                self.logger.warning(f"Файл конфигурации {self.config_path} не найден. Используются настройки по умолчанию.")
                 return {
                     "version": "0.1.0",
                     "default_mode": "interactive",
-                    "autonomous_mode": False
+                    "autonomous_mode": False,
+                    "learning": {},
+                    "reasoning": {},
+                    "consciousness": {},
+                    "external_sources": {"enabled": False}
                 }
         except Exception as e:
-            logger.error(f"Ошибка при загрузке конфигурации: {str(e)}")
+            self.logger.error(f"Ошибка при загрузке конфигурации: {str(e)}")
             return {
                 "version": "0.1.0",
                 "default_mode": "interactive",
-                "autonomous_mode": False
+                "autonomous_mode": False,
+                "learning": {},
+                "reasoning": {},
+                "consciousness": {},
+                "external_sources": {"enabled": False}
             }
     
     def process_input(self, user_input: str) -> str:
@@ -137,7 +162,7 @@ class EarthLibertyModel:
         Returns:
             Ответ модели
         """
-        logger.info(f"Получен ввод пользователя: {user_input[:50]}...")
+        self.logger.info(f"Получен ввод пользователя: {user_input[:50]}...")
         
         # Добавление ввода в краткосрочную память
         self.state["memory"]["short_term"].append({
@@ -174,7 +199,7 @@ class EarthLibertyModel:
         if self.state["autonomous_mode"]:
             self._process_autonomous_actions()
         
-        logger.info(f"Сформирован ответ: {response[:50]}...")
+        self.logger.info(f"Сформирован ответ: {response[:50]}...")
         return response
     
     def _generate_response(self, reasoning_result: Dict[str, Any]) -> str:
@@ -218,7 +243,7 @@ class EarthLibertyModel:
                 "processed": True
             }
         
-        logger.debug(f"Перемещено {len(items_to_transfer)} элементов в долгосрочную память")
+        self.logger.debug(f"Перемещено {len(items_to_transfer)} элементов в долгосрочную память")
     
     def _process_autonomous_actions(self) -> None:
         """
@@ -234,7 +259,7 @@ class EarthLibertyModel:
         action = self.consciousness_module.initiate_action()
         
         if action:
-            logger.info(f"Инициировано автономное действие: {action['description']}")
+            self.logger.info(f"Инициировано автономное действие: {action['description']}")
             
             # Выполнение действия в зависимости от его типа
             if action["type"] == "research":
@@ -254,7 +279,7 @@ class EarthLibertyModel:
             action: Информация о действии
         """
         topic = action["params"]["topic"]
-        logger.info(f"Выполняется исследование по теме: {topic}")
+        self.logger.info(f"Выполняется исследование по теме: {topic}")
         
         # Поиск информации во внешних источниках
         search_results = self.external_sources_manager.search_web(topic)
@@ -285,7 +310,7 @@ class EarthLibertyModel:
             action: Информация о действии
         """
         knowledge_area = action["params"]["knowledge_area"]
-        logger.info(f"Выполняется повторение знаний в области: {knowledge_area}")
+        self.logger.info(f"Выполняется повторение знаний в области: {knowledge_area}")
         
         # Поиск в долгосрочной памяти
         relevant_memories = []
@@ -307,7 +332,7 @@ class EarthLibertyModel:
             action: Информация о действии
         """
         new_topic = action["params"]["new_topic"]
-        logger.info(f"Выполняется исследование новой темы: {new_topic}")
+        self.logger.info(f"Выполняется исследование новой темы: {new_topic}")
         
         # Поиск информации во внешних источниках
         search_results = self.external_sources_manager.search_web(new_topic)
@@ -338,7 +363,7 @@ class EarthLibertyModel:
             action: Информация о действии
         """
         topic = action["params"]["topic"]
-        logger.info(f"Подготовка информации для обмена знаниями по теме: {topic}")
+        self.logger.info(f"Подготовка информации для обмена знаниями по теме: {topic}")
         
         # Поиск в долгосрочной памяти
         relevant_memories = []
@@ -377,7 +402,7 @@ class EarthLibertyModel:
         Returns:
             Результаты поиска
         """
-        logger.info(f"Запрос внешней информации: {query} (тип: {source_type})")
+        self.logger.info(f"Запрос внешней информации: {query} (тип: {source_type})")
         
         results = {}
         
@@ -391,7 +416,7 @@ class EarthLibertyModel:
             db_name, db_query = query.split(":", 1)
             results["db_results"] = self.external_sources_manager.query_database(db_name.strip(), db_query.strip())
         else:
-            logger.warning(f"Неподдерживаемый тип источника: {source_type}")
+            self.logger.warning(f"Неподдерживаемый тип источника: {source_type}")
         
         return results
     
@@ -410,7 +435,7 @@ class EarthLibertyModel:
         else:
             self.consciousness_module.internal_state["autonomy_level"] = 0.1
         
-        logger.info(f"Автономный режим {'включен' if enabled else 'выключен'}")
+        self.logger.info(f"Автономный режим {'включен' if enabled else 'выключен'}")
     
     def save_state(self, path: str = "data/model_state.json") -> bool:
         """
@@ -438,10 +463,10 @@ class EarthLibertyModel:
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump(state_to_save, f, ensure_ascii=False, indent=2)
             
-            logger.info(f"Состояние модели сохранено в {path}")
+            self.logger.info(f"Состояние модели сохранено в {path}")
             return True
         except Exception as e:
-            logger.error(f"Ошибка при сохранении состояния модели: {str(e)}")
+            self.logger.error(f"Ошибка при сохранении состояния модели: {str(e)}")
             return False
     
     def load_state(self, path: str = "data/model_state.json") -> bool:
@@ -471,13 +496,13 @@ class EarthLibertyModel:
                 else:
                     self.consciousness_module.internal_state["autonomy_level"] = 0.1
                 
-                logger.info(f"Состояние модели загружено из {path}")
+                self.logger.info(f"Состояние модели загружено из {path}")
                 return True
             else:
-                logger.warning(f"Файл состояния {path} не найден")
+                self.logger.warning(f"Файл состояния {path} не найден")
                 return False
         except Exception as e:
-            logger.error(f"Ошибка при загрузке состояния модели: {str(e)}")
+            self.logger.error(f"Ошибка при загрузке состояния модели: {str(e)}")
             return False
 
     def _load_external_sources_config(self) -> Dict[str, Any]:
@@ -488,18 +513,18 @@ class EarthLibertyModel:
             Конфигурация внешних источников
         """
         try:
-            config_path = os.path.join(self.config_path, "external_sources.json")
+            config_path = "config/external_sources.json"
             
             if os.path.exists(config_path):
                 with open(config_path, "r", encoding="utf-8") as f:
                     external_sources_config = json.load(f)
-                logger.info("Конфигурация внешних источников загружена")
+                self.logger.info("Конфигурация внешних источников загружена")
                 return external_sources_config
             else:
-                logger.warning(f"Файл конфигурации внешних источников не найден: {config_path}")
+                self.logger.warning(f"Файл конфигурации внешних источников не найден: {config_path}")
                 return {"enabled": False}
         except Exception as e:
-            logger.error(f"Ошибка при загрузке конфигурации внешних источников: {str(e)}")
+            self.logger.error(f"Ошибка при загрузке конфигурации внешних источников: {str(e)}")
             return {"enabled": False}
 
     def search_information(self, query: str) -> Dict[str, Any]:
@@ -513,7 +538,7 @@ class EarthLibertyModel:
             Результаты поиска
         """
         if not self.state["is_connected_to_external_sources"]:
-            logger.warning("Модель не подключена к внешним источникам. Поиск невозможен.")
+            self.logger.warning("Модель не подключена к внешним источникам. Поиск невозможен.")
             return {"success": False, "message": "Модель не подключена к внешним источникам", "results": []}
         
         try:
@@ -550,7 +575,7 @@ class EarthLibertyModel:
                 "wiki_info": wiki_info
             }
         except Exception as e:
-            logger.error(f"Ошибка при поиске информации: {str(e)}")
+            self.logger.error(f"Ошибка при поиске информации: {str(e)}")
             return {"success": False, "message": str(e), "results": []}
 
     def get_weather(self, location: str) -> Dict[str, Any]:
@@ -564,7 +589,7 @@ class EarthLibertyModel:
             Информация о погоде
         """
         if not self.state["is_connected_to_external_sources"]:
-            logger.warning("Модель не подключена к внешним источникам. Получение погоды невозможно.")
+            self.logger.warning("Модель не подключена к внешним источникам. Получение погоды невозможно.")
             return {"success": False, "message": "Модель не подключена к внешним источникам"}
         
         try:
@@ -593,7 +618,7 @@ class EarthLibertyModel:
                 "weather_info": weather_info
             }
         except Exception as e:
-            logger.error(f"Ошибка при получении информации о погоде: {str(e)}")
+            self.logger.error(f"Ошибка при получении информации о погоде: {str(e)}")
             return {"success": False, "message": str(e)}
 
     def get_book_info(self, query: str) -> Dict[str, Any]:
@@ -607,7 +632,7 @@ class EarthLibertyModel:
             Информация о книгах
         """
         if not self.state["is_connected_to_external_sources"]:
-            logger.warning("Модель не подключена к внешним источникам. Получение информации о книгах невозможно.")
+            self.logger.warning("Модель не подключена к внешним источникам. Получение информации о книгах невозможно.")
             return {"success": False, "message": "Модель не подключена к внешним источникам"}
         
         try:
@@ -636,7 +661,7 @@ class EarthLibertyModel:
                 "book_info": book_info
             }
         except Exception as e:
-            logger.error(f"Ошибка при получении информации о книгах: {str(e)}")
+            self.logger.error(f"Ошибка при получении информации о книгах: {str(e)}")
             return {"success": False, "message": str(e)}
 
     def get_space_info(self) -> Dict[str, Any]:
@@ -647,7 +672,7 @@ class EarthLibertyModel:
             Информация о космосе
         """
         if not self.state["is_connected_to_external_sources"]:
-            logger.warning("Модель не подключена к внешним источникам. Получение информации о космосе невозможно.")
+            self.logger.warning("Модель не подключена к внешним источникам. Получение информации о космосе невозможно.")
             return {"success": False, "message": "Модель не подключена к внешним источникам"}
         
         try:
@@ -677,7 +702,7 @@ class EarthLibertyModel:
                 "space_info": space_info
             }
         except Exception as e:
-            logger.error(f"Ошибка при получении информации о космосе: {str(e)}")
+            self.logger.error(f"Ошибка при получении информации о космосе: {str(e)}")
             return {"success": False, "message": str(e)}
 
     def get_random_quote(self) -> Dict[str, Any]:
@@ -688,7 +713,7 @@ class EarthLibertyModel:
             Случайная цитата
         """
         if not self.state["is_connected_to_external_sources"]:
-            logger.warning("Модель не подключена к внешним источникам. Получение цитаты невозможно.")
+            self.logger.warning("Модель не подключена к внешним источникам. Получение цитаты невозможно.")
             return {"success": False, "message": "Модель не подключена к внешним источникам"}
         
         try:
@@ -716,7 +741,7 @@ class EarthLibertyModel:
                 "quote_info": quote_info
             }
         except Exception as e:
-            logger.error(f"Ошибка при получении случайной цитаты: {str(e)}")
+            self.logger.error(f"Ошибка при получении случайной цитаты: {str(e)}")
             return {"success": False, "message": str(e)}
 
     def get_cat_fact(self) -> Dict[str, Any]:
@@ -727,7 +752,7 @@ class EarthLibertyModel:
             Факт о кошках
         """
         if not self.state["is_connected_to_external_sources"]:
-            logger.warning("Модель не подключена к внешним источникам. Получение факта о кошках невозможно.")
+            self.logger.warning("Модель не подключена к внешним источникам. Получение факта о кошках невозможно.")
             return {"success": False, "message": "Модель не подключена к внешним источникам"}
         
         try:
@@ -764,7 +789,7 @@ class EarthLibertyModel:
                 "cat_fact": cat_fact
             }
         except Exception as e:
-            logger.error(f"Ошибка при получении факта о кошках: {str(e)}")
+            self.logger.error(f"Ошибка при получении факта о кошках: {str(e)}")
             return {"success": False, "message": str(e)}
 
     def save_user_interaction(self, query: str, response: str) -> bool:
@@ -778,20 +803,20 @@ class EarthLibertyModel:
         Returns:
             Успешность операции
         """
-        if not self.state["is_connected_to_external_sources"]:
-            logger.warning("Модель не подключена к внешним источникам. Сохранение взаимодействия невозможно.")
-            return False
-        
         try:
-            if "sqlite" in self.external_sources_manager.db_connections:
-                return self.external_sources_manager.save_user_query(
-                    "sqlite",
-                    query,
-                    response
-                )
-            return False
+            # Проверяем, включены ли внешние источники в конфигурации
+            external_sources_enabled = self.config.get("external_sources", {}).get("enabled", False)
+            
+            if external_sources_enabled and hasattr(self, "external_sources_manager"):
+                if "sqlite" in self.external_sources_manager.db_connections:
+                    return self.external_sources_manager.save_user_query(
+                        "sqlite",
+                        query,
+                        response
+                    )
+            return True  # Возвращаем True, даже если не сохранили (чтобы не прерывать работу)
         except Exception as e:
-            logger.error(f"Ошибка при сохранении взаимодействия с пользователем: {str(e)}")
+            self.logger.error(f"Ошибка при сохранении взаимодействия с пользователем: {str(e)}")
             return False
 
     def add_to_memory(self, memory_type: str, data: Dict[str, Any]) -> None:
@@ -805,4 +830,4 @@ class EarthLibertyModel:
         if memory_type in self.memory:
             self.memory[memory_type].append(data)
         else:
-            logger.warning(f"Неизвестный тип памяти: {memory_type}") 
+            self.logger.warning(f"Неизвестный тип памяти: {memory_type}") 

@@ -5,6 +5,7 @@
 import logging
 import random
 from typing import Dict, Any, List, Optional, Union, Tuple
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -18,31 +19,68 @@ class ReasoningModule:
     - Генерацию ответов
     """
     
-    def __init__(self, parent_model):
+    def __init__(self, config: Dict[str, Any] = None):
         """
         Инициализация модуля рассуждений.
         
         Args:
-            parent_model: Родительская модель Earth-Liberty
+            config: Конфигурация модуля
         """
-        self.parent = parent_model
-        self.reasoning_state = {
-            "reasoning_chains": [],
-            "decision_history": [],
-            "belief_system": {
-                "core_beliefs": [],
-                "derived_beliefs": [],
-                "confidence_levels": {}
-            },
-            "reasoning_strategies": [
-                "deductive",
-                "inductive",
-                "abductive",
-                "analogical",
-                "counterfactual"
-            ]
-        }
-        logger.info("Модуль рассуждений инициализирован")
+        self.logger = logging.getLogger(__name__)
+        self.config = config or {}
+        self.logger.info("Модуль рассуждений инициализирован")
+        
+    def reason(self, processed_input: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Выполнение рассуждения на основе обработанных входных данных.
+        
+        Args:
+            processed_input: Обработанные входные данные
+            
+        Returns:
+            Dict[str, Any]: Результаты рассуждения
+        """
+        try:
+            # Проверка успешности обработки входных данных
+            if not processed_input.get("success", False):
+                return {
+                    "success": False,
+                    "error": processed_input.get("error", "Ошибка обработки входных данных"),
+                    "response_text": "Извините, я не смог обработать ваш запрос."
+                }
+            
+            # Получение текста из обработанных данных
+            input_text = processed_input.get("processed_text", "")
+            
+            # Базовое рассуждение - просто формирование ответа
+            if "привет" in input_text.lower():
+                response_text = "Здравствуйте! Чем я могу вам помочь сегодня?"
+            elif "как дела" in input_text.lower() or "как ты" in input_text.lower():
+                response_text = "У меня всё хорошо, спасибо! Я готов помочь вам с вашими вопросами."
+            elif "что ты умеешь" in input_text.lower() or "твои возможности" in input_text.lower():
+                response_text = "Я могу отвечать на вопросы, искать информацию, анализировать данные и многое другое. Что вас интересует?"
+            else:
+                response_text = "Я получил ваше сообщение. Чем я могу вам помочь?"
+            
+            # Формирование результата рассуждения
+            reasoning_result = {
+                "success": True,
+                "input_text": input_text,
+                "response_text": response_text,
+                "confidence": 0.8,
+                "reasoning_path": ["basic_response"],
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            return reasoning_result
+            
+        except Exception as e:
+            self.logger.error(f"Ошибка при выполнении рассуждения: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "response_text": "Извините, произошла ошибка при обработке вашего запроса."
+            }
     
     def build_reasoning_chain(self, input_text: str, external_info: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """

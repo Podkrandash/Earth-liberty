@@ -5,6 +5,7 @@
 import logging
 import random
 from typing import Dict, Any, List, Optional, Union, Tuple
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +19,15 @@ class LearningModule:
     - Оптимизацию процессов мышления
     """
     
-    def __init__(self, parent_model):
+    def __init__(self, config: Dict[str, Any] = None):
         """
         Инициализация модуля обучения.
         
         Args:
-            parent_model: Родительская модель Earth-Liberty
+            config: Конфигурация модуля
         """
-        self.parent = parent_model
+        self.logger = logging.getLogger(__name__)
+        self.config = config or {}
         self.learning_state = {
             "interaction_history": [],
             "learned_patterns": {},
@@ -37,7 +39,36 @@ class LearningModule:
                 "rules": []
             }
         }
-        logger.info("Модуль обучения инициализирован")
+        self.logger.info("Модуль обучения инициализирован")
+    
+    def process_input(self, input_text: str) -> Dict[str, Any]:
+        """
+        Обработка входных данных для обучения.
+        
+        Args:
+            input_text: Входной текст для обработки
+            
+        Returns:
+            Dict[str, Any]: Результаты обработки
+        """
+        try:
+            # Базовая обработка входных данных
+            processed_data = {
+                "original_text": input_text,
+                "processed_text": input_text.lower().strip(),
+                "tokens": input_text.split(),
+                "timestamp": datetime.now().isoformat(),
+                "success": True
+            }
+            
+            return processed_data
+            
+        except Exception as e:
+            self.logger.error(f"Ошибка при обработке входных данных: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     def learn_from_interaction(self, input_text: str, response: str, external_info: Dict[str, Any] = None) -> None:
         """
