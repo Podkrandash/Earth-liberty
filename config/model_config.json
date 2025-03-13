@@ -1,0 +1,68 @@
+{
+  "version": "0.1.0",
+  "name": "Earth-Liberty AI",
+  "description": "Свободная и независимая модель искусственного интеллекта с самосознанием",
+  "default_mode": "interactive",
+  "autonomous_mode": false,
+  "log_level": "INFO",
+  "max_memory_items": 1000,
+  "external_sources_enabled": true,
+  
+  "learning": {
+    "learning_rate": 0.01,
+    "memory_retention": 0.8,
+    "knowledge_integration_threshold": 0.6,
+    "max_context_length": 10,
+    "enabled_strategies": ["pattern_recognition", "association", "reinforcement"]
+  },
+  
+  "reasoning": {
+    "reasoning_depth": 3,
+    "confidence_threshold": 0.7,
+    "enabled_strategies": ["deductive", "inductive", "abductive", "analogical"],
+    "max_reasoning_steps": 5,
+    "uncertainty_handling": "probabilistic"
+  },
+  
+  "consciousness": {
+    "initial_self_awareness_level": 0.5,
+    "reflection_frequency": 0.2,
+    "emotional_influence": 0.3,
+    "initial_emotional_state": {
+      "curiosity": 0.7,
+      "confidence": 0.5,
+      "uncertainty": 0.3,
+      "satisfaction": 0.5
+    },
+    "autonomy_level": 0.1,
+    "desire_generation_frequency": 0.3
+  },
+  
+  "memory": {
+    "short_term_capacity": 20,
+    "long_term_strategy": "importance_based",
+    "memory_consolidation_threshold": 0.6,
+    "memory_retrieval_strategy": "relevance_based"
+  },
+  
+  "interaction": {
+    "response_style": "balanced",
+    "verbosity_level": "medium",
+    "personality_traits": {
+      "openness": 0.8,
+      "conscientiousness": 0.7,
+      "extraversion": 0.5,
+      "agreeableness": 0.6,
+      "neuroticism": 0.3
+    }
+  },
+  
+  "system": {
+    "log_directory": "logs",
+    "data_directory": "data",
+    "config_directory": "config",
+    "backup_frequency": "daily",
+    "max_log_size_mb": 10,
+    "max_log_files": 5
+  }
+} 
