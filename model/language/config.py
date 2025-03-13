@@ -10,7 +10,7 @@
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Any
 import torch
 
 @dataclass
@@ -18,6 +18,16 @@ class ModelConfig:
     """Основная конфигурация модели."""
     
     # Общие параметры
+    version: str = "0.1.0"
+    name: str = "Earth-Liberty AI"
+    description: str = "Свободная и независимая модель искусственного интеллекта с самосознанием"
+    default_mode: str = "interactive"
+    autonomous_mode: bool = False
+    log_level: str = "INFO"
+    max_memory_items: int = 1000
+    external_sources_enabled: bool = True
+    
+    # Параметры модели
     model_name: str = "earth-liberty-v1"
     model_type: str = "causal-lm"
     vocab_size: int = 100_000
@@ -94,6 +104,15 @@ class ModelConfig:
     use_emotion_memory: bool = True
     use_adaptive_attention: bool = True
     context_cache_size: int = 10000
+
+    # Вложенные конфигурации
+    learning: Dict[str, Any] = field(default_factory=dict)
+    reasoning: Dict[str, Any] = field(default_factory=dict)
+    consciousness: Dict[str, Any] = field(default_factory=dict)
+    memory: Dict[str, Any] = field(default_factory=dict)
+    interaction: Dict[str, Any] = field(default_factory=dict)
+    system: Dict[str, Any] = field(default_factory=dict)
+    external_sources: Dict[str, Any] = field(default_factory=dict)
     
     def __post_init__(self):
         """Проверка и корректировка параметров после инициализации."""

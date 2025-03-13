@@ -527,7 +527,7 @@ class ConsciousnessModule:
             "этические аспекты ИИ"
         ]
         
-        return random.choice(topics)
+        return random.choice(topics) 
     
     def perform_deep_self_reflection(self) -> Dict[str, Any]:
         """

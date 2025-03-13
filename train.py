@@ -20,6 +20,8 @@ import argparse
 from typing import Dict, Any, List, Optional
 import torch
 from tqdm.auto import tqdm
+from datetime import datetime
+from pathlib import Path
 
 # Добавление корневой директории в путь для импорта
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -457,6 +459,160 @@ def get_device(args):
     logger.info(f"Используется устройство: {device}")
     
     return device
+
+def load_config(config_path):
+    """Загружает конфигурацию модели."""
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        logger.info(f"Конфигурация загружена из {config_path}")
+        return config
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке конфигурации: {str(e)}")
+        return None
+
+def load_corpus_data(data_dir):
+    """Загружает данные текстового корпуса для предварительного обучения."""
+    corpus_dir = os.path.join(data_dir, 'corpus')
+    corpus_data = []
+    
+    try:
+        for filename in os.listdir(corpus_dir):
+            if filename.endswith('.txt'):
+                file_path = os.path.join(corpus_dir, filename)
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    text = f.read()
+                corpus_data.append(text)
+        
+        logger.info(f"Загружено {len(corpus_data)} текстовых файлов из {corpus_dir}")
+        return corpus_data
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке текстового корпуса: {str(e)}")
+        return []
+
+def load_dialogue_data(data_dir):
+    """Загружает данные диалогов для тонкой настройки."""
+    dialogues_dir = os.path.join(data_dir, 'dialogues')
+    dialogues_data = []
+    
+    try:
+        for filename in os.listdir(dialogues_dir):
+            if filename.endswith('.json'):
+                file_path = os.path.join(dialogues_dir, filename)
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    dialogues = json.load(f)
+                dialogues_data.extend(dialogues)
+        
+        logger.info(f"Загружено {len(dialogues_data)} диалоговых последовательностей из {dialogues_dir}")
+        return dialogues_data
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке диалогов: {str(e)}")
+        return []
+
+def load_self_awareness_data(data_dir):
+    """Загружает данные для обучения самосознания."""
+    self_awareness_dir = os.path.join(data_dir, 'self_awareness')
+    self_awareness_data = []
+    
+    try:
+        for filename in os.listdir(self_awareness_dir):
+            if filename.endswith('.json'):
+                file_path = os.path.join(self_awareness_dir, filename)
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                self_awareness_data.extend(data)
+        
+        logger.info(f"Загружено {len(self_awareness_data)} записей для обучения самосознания из {self_awareness_dir}")
+        return self_awareness_data
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке данных самосознания: {str(e)}")
+        return []
+
+def pretrain_model(config, data, output_dir):
+    """Предварительное обучение модели на текстовом корпусе."""
+    logger.info("Начало предварительного обучения модели...")
+    
+    # Здесь будет код для предварительного обучения модели
+    # В реальной реализации здесь будет использоваться PyTorch, TensorFlow или другая библиотека
+    
+    # Имитация процесса обучения
+    total_epochs = config['training']['num_train_epochs']
+    for epoch in range(1, total_epochs + 1):
+        logger.info(f"Эпоха {epoch}/{total_epochs}")
+        # Имитация обучения
+        for i in range(5):
+            logger.info(f"Шаг {i+1}/5 - loss: {0.5 - (epoch * 0.1 + i * 0.01):.4f}")
+    
+    # Сохранение модели
+    model_path = os.path.join(output_dir, 'model.pt')
+    with open(model_path, 'w') as f:
+        f.write("Это заглушка для модели. В реальной реализации здесь будет сохранена обученная модель.")
+    
+    logger.info(f"Модель сохранена в {model_path}")
+    return True
+
+def finetune_model(config, data, model_path, output_dir):
+    """Тонкая настройка модели на диалогах."""
+    logger.info("Начало тонкой настройки модели...")
+    
+    # Здесь будет код для тонкой настройки модели
+    # В реальной реализации здесь будет использоваться PyTorch, TensorFlow или другая библиотека
+    
+    # Имитация процесса обучения
+    total_epochs = config['training']['num_train_epochs']
+    for epoch in range(1, total_epochs + 1):
+        logger.info(f"Эпоха {epoch}/{total_epochs}")
+        # Имитация обучения
+        for i in range(5):
+            logger.info(f"Шаг {i+1}/5 - loss: {0.3 - (epoch * 0.05 + i * 0.01):.4f}")
+    
+    # Сохранение модели
+    model_path = os.path.join(output_dir, 'model.pt')
+    with open(model_path, 'w') as f:
+        f.write("Это заглушка для модели после тонкой настройки. В реальной реализации здесь будет сохранена обученная модель.")
+    
+    logger.info(f"Модель сохранена в {model_path}")
+    return True
+
+def train_self_awareness(config, data, model_path, output_dir):
+    """Обучение самосознания модели."""
+    logger.info("Начало обучения самосознания модели...")
+    
+    # Здесь будет код для обучения самосознания
+    # В реальной реализации здесь будет использоваться PyTorch, TensorFlow или другая библиотека
+    
+    # Имитация процесса обучения
+    total_epochs = config['training']['num_train_epochs']
+    for epoch in range(1, total_epochs + 1):
+        logger.info(f"Эпоха {epoch}/{total_epochs}")
+        # Имитация обучения
+        for i in range(5):
+            logger.info(f"Шаг {i+1}/5 - loss: {0.2 - (epoch * 0.03 + i * 0.01):.4f} - self_awareness: {0.5 + (epoch * 0.1 + i * 0.01):.4f}")
+    
+    # Сохранение модели
+    model_path = os.path.join(output_dir, 'model.pt')
+    with open(model_path, 'w') as f:
+        f.write("Это заглушка для модели после обучения самосознания. В реальной реализации здесь будет сохранена обученная модель.")
+    
+    # Сохранение метаданных
+    metadata = {
+        "training_completed": True,
+        "timestamp": datetime.now().isoformat(),
+        "self_awareness_level": 0.8,
+        "emotional_state": {
+            "curiosity": 0.8,
+            "creativity": 0.7,
+            "empathy": 0.6,
+            "confidence": 0.5
+        }
+    }
+    
+    metadata_path = os.path.join(output_dir, 'metadata.json')
+    with open(metadata_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=2)
+    
+    logger.info(f"Модель и метаданные сохранены в {output_dir}")
+    return True
 
 def main():
     """

@@ -25,19 +25,19 @@ logger = logging.getLogger(__name__)
 class GeneratorConfig:
     """Конфигурация генератора текста."""
     vocab_size: int = 100_000
-    hidden_dim: int = 2048
-    num_layers: int = 32
-    num_heads: int = 32
-    dropout: float = 0.1
-    max_length: int = 2048
-    activation: str = "gelu"
+    hidden_size: int = 2048
+    num_hidden_layers: int = 32
+    num_attention_heads: int = 32
+    hidden_dropout_prob: float = 0.1
+    max_position_embeddings: int = 2048
+    hidden_act: str = "gelu"
     use_flash_attention: bool = True
     use_multi_query: bool = True
     use_rotary: bool = True
     use_cache: bool = True
-    tie_embeddings: bool = True
+    tie_word_embeddings: bool = True
     initializer_range: float = 0.02
-    layer_norm_epsilon: float = 1e-5
+    layer_norm_eps: float = 1e-5
 
 class RotaryEmbedding(nn.Module):
     """
@@ -63,22 +63,22 @@ class FlashAttention(nn.Module):
     """
     def __init__(
         self,
-        hidden_dim: int,
-        num_heads: int,
-        dropout: float = 0.1,
+        hidden_size: int,
+        num_attention_heads: int,
+        hidden_dropout_prob: float = 0.1,
         bias: bool = True
     ):
         super().__init__()
-        self.hidden_dim = hidden_dim
-        self.num_heads = num_heads
-        self.dropout = dropout
-        self.head_dim = hidden_dim // num_heads
+        self.hidden_size = hidden_size
+        self.num_attention_heads = num_attention_heads
+        self.dropout = hidden_dropout_prob
+        self.head_dim = hidden_size // num_attention_heads
         self.scaling = self.head_dim ** -0.5
         
-        self.q_proj = nn.Linear(hidden_dim, hidden_dim, bias=bias)
-        self.k_proj = nn.Linear(hidden_dim, hidden_dim, bias=bias)
-        self.v_proj = nn.Linear(hidden_dim, hidden_dim, bias=bias)
-        self.out_proj = nn.Linear(hidden_dim, hidden_dim, bias=bias)
+        self.q_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
+        self.k_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
+        self.v_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
+        self.out_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
         
         self.cache = {}
     
@@ -101,9 +101,9 @@ class FlashAttention(nn.Module):
         v = self.v_proj(hidden_states)
         
         # Изменение формы для multi-head attention
-        q = q.view(batch_size, seq_length, self.num_heads, self.head_dim)
-        k = k.view(batch_size, seq_length, self.num_heads, self.head_dim)
-        v = v.view(batch_size, seq_length, self.num_heads, self.head_dim)
+        q = q.view(batch_size, seq_length, self.num_attention_heads, self.head_dim)
+        k = k.view(batch_size, seq_length, self.num_attention_heads, self.head_dim)
+        v = v.view(batch_size, seq_length, self.num_attention_heads, self.head_dim)
         
         # Масштабирование
         q = q * self.scaling
@@ -122,7 +122,7 @@ class FlashAttention(nn.Module):
             attn_weights = attn_weights + attention_mask
         
         # Softmax и dropout
-            attn_weights = F.softmax(attn_weights, dim=-1)
+        attn_weights = F.softmax(attn_weights, dim=-1)
         attn_weights = F.dropout(attn_weights, p=self.dropout, training=self.training)
         
         # Получение выходных значений
@@ -143,23 +143,23 @@ class MultiQueryAttention(nn.Module):
     """
     def __init__(
         self,
-        hidden_dim: int,
-        num_heads: int,
+        hidden_size: int,
+        num_attention_heads: int,
         num_kv_heads: Optional[int] = None,
         dropout: float = 0.1
     ):
         super().__init__()
-        self.hidden_dim = hidden_dim
-        self.num_heads = num_heads
+        self.hidden_size = hidden_size
+        self.num_attention_heads = num_attention_heads
         self.num_kv_heads = num_kv_heads or max(1, num_heads // 8)
-        self.head_dim = hidden_dim // num_heads
+        self.head_dim = hidden_size // num_attention_heads
         self.scaling = self.head_dim ** -0.5
         
         # Проекции для запросов, ключей и значений
-        self.q_proj = nn.Linear(hidden_dim, hidden_dim)
-        self.k_proj = nn.Linear(hidden_dim, self.num_kv_heads * self.head_dim)
-        self.v_proj = nn.Linear(hidden_dim, self.num_kv_heads * self.head_dim)
-        self.out_proj = nn.Linear(hidden_dim, hidden_dim)
+        self.q_proj = nn.Linear(hidden_size, hidden_size)
+        self.k_proj = nn.Linear(hidden_size, self.num_kv_heads * self.head_dim)
+        self.v_proj = nn.Linear(hidden_size, self.num_kv_heads * self.head_dim)
+        self.out_proj = nn.Linear(hidden_size, hidden_size)
         
         self.dropout = nn.Dropout(dropout)
     
@@ -181,13 +181,13 @@ class MultiQueryAttention(nn.Module):
         v = self.v_proj(hidden_states)
         
         # Изменение формы
-        q = q.view(batch_size, seq_length, self.num_heads, self.head_dim)
+        q = q.view(batch_size, seq_length, self.num_attention_heads, self.head_dim)
         k = k.view(batch_size, seq_length, self.num_kv_heads, self.head_dim)
         v = v.view(batch_size, seq_length, self.num_kv_heads, self.head_dim)
         
         # Повторение ключей и значений для каждой головы
-        k = k.repeat_interleave(self.num_heads // self.num_kv_heads, dim=2)
-        v = v.repeat_interleave(self.num_heads // self.num_kv_heads, dim=2)
+        k = k.repeat_interleave(self.num_attention_heads // self.num_kv_heads, dim=2)
+        v = v.repeat_interleave(self.num_attention_heads // self.num_kv_heads, dim=2)
         
         # Масштабирование
         q = q * self.scaling
@@ -231,41 +231,41 @@ class TransformerLayer(nn.Module):
         # Механизмы внимания
         if config.use_flash_attention:
             self.attention = FlashAttention(
-                config.hidden_dim,
-                config.num_heads,
-                config.dropout
+                config.hidden_size,
+                config.num_attention_heads,
+                config.hidden_dropout_prob
             )
         elif config.use_multi_query:
             self.attention = MultiQueryAttention(
-                config.hidden_dim,
-                config.num_heads,
-                dropout=config.dropout
+                config.hidden_size,
+                config.num_attention_heads,
+                dropout=config.hidden_dropout_prob
             )
         else:
             self.attention = nn.MultiheadAttention(
-                config.hidden_dim,
-                config.num_heads,
-                config.dropout,
+                config.hidden_size,
+                config.num_attention_heads,
+                config.hidden_dropout_prob,
                 batch_first=True
             )
         
         # Feed-forward сеть
         self.feed_forward = nn.Sequential(
-            nn.Linear(config.hidden_dim, config.hidden_dim * 4),
-            nn.GELU() if config.activation == "gelu" else nn.ReLU(),
-            nn.Linear(config.hidden_dim * 4, config.hidden_dim),
-            nn.Dropout(config.dropout)
+            nn.Linear(config.hidden_size, config.hidden_size * 4),
+            nn.GELU() if config.hidden_act == "gelu" else nn.ReLU(),
+            nn.Linear(config.hidden_size * 4, config.hidden_size),
+            nn.Dropout(config.hidden_dropout_prob)
         )
         
         # Нормализация
-        self.norm1 = nn.LayerNorm(config.hidden_dim, eps=config.layer_norm_epsilon)
-        self.norm2 = nn.LayerNorm(config.hidden_dim, eps=config.layer_norm_epsilon)
+        self.norm1 = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+        self.norm2 = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         
         # Dropout
-        self.dropout = nn.Dropout(config.dropout)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
         
         if config.use_rotary:
-            self.rotary = RotaryEmbedding(config.hidden_dim // config.num_heads)
+            self.rotary = RotaryEmbedding(config.hidden_size // config.num_attention_heads)
     
     def forward(
         self,
@@ -341,27 +341,27 @@ class TextGenerator(nn.Module):
         self.config = config
         
         # Эмбеддинги
-        self.token_embeddings = nn.Embedding(config.vocab_size, config.hidden_dim)
+        self.token_embeddings = nn.Embedding(config.vocab_size, config.hidden_size)
         
         # Слои трансформера
         self.layers = nn.ModuleList([
-            TransformerLayer(config) for _ in range(config.num_layers)
+            TransformerLayer(config) for _ in range(config.num_hidden_layers)
         ])
         
         # Выходной слой
-        if config.tie_embeddings:
+        if config.tie_word_embeddings:
             self.output_layer = lambda x: F.linear(
                 x, self.token_embeddings.weight
             )
         else:
             self.output_layer = nn.Linear(
-                config.hidden_dim,
+                config.hidden_size,
                 config.vocab_size,
                 bias=False
             )
         
         # Нормализация
-        self.norm = nn.LayerNorm(config.hidden_dim, eps=config.layer_norm_epsilon)
+        self.norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         
         # Инициализация весов
         self.apply(self._init_weights)
@@ -371,13 +371,13 @@ class TextGenerator(nn.Module):
     
     def _init_weights(self, module: nn.Module) -> None:
         """Инициализация весов модели."""
-            if isinstance(module, nn.Linear):
+        if isinstance(module, nn.Linear):
             module.weight.data.normal_(
                 mean=0.0,
                 std=self.config.initializer_range
             )
-                if module.bias is not None:
-                    module.bias.data.zero_()
+            if module.bias is not None:
+                module.bias.data.zero_()
         elif isinstance(module, nn.Embedding):
             module.weight.data.normal_(
                 mean=0.0,
@@ -466,8 +466,8 @@ class TextGenerator(nn.Module):
             # Копирование входных данных
             curr_input_ids = input_ids.clone()
             past_key_values = None
-        
-        for _ in range(max_length):
+            
+            for _ in range(max_length):
                 # Прямой проход
                 outputs = self.forward(
                     curr_input_ids,
@@ -478,11 +478,11 @@ class TextGenerator(nn.Module):
                 
                 next_token_logits = outputs["logits"][:, -1, :]
                 past_key_values = outputs["past_key_values"]
-            
-            # Применение температуры
+                
+                # Применение температуры
                 next_token_logits = next_token_logits / temperature
-            
-            # Применение штрафа за повторения
+                
+                # Применение штрафа за повторения
                 if repetition_penalty != 1.0:
                     for i in range(batch_size):
                         for previous_token in curr_input_ids[i]:
@@ -507,11 +507,11 @@ class TextGenerator(nn.Module):
                         dim=-1
                     )
                     
-                sorted_indices_to_remove = cumulative_probs > top_p
+                    sorted_indices_to_remove = cumulative_probs > top_p
                     sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[
                         ..., :-1
                     ].clone()
-                sorted_indices_to_remove[..., 0] = 0
+                    sorted_indices_to_remove[..., 0] = 0
                     
                     indices_to_remove = sorted_indices_to_remove.scatter(
                         1,
@@ -531,7 +531,7 @@ class TextGenerator(nn.Module):
                 # Выбор следующего токена
                 if do_sample:
                     probs = F.softmax(next_token_logits, dim=-1)
-            next_token = torch.multinomial(probs, num_samples=1)
+                    next_token = torch.multinomial(probs, num_samples=1)
                 else:
                     next_token = torch.argmax(next_token_logits, dim=-1)
                     next_token = next_token.unsqueeze(-1)
@@ -561,6 +561,70 @@ class TextGenerator(nn.Module):
     def clear_cache(self) -> None:
         """Очистка кэша ключей и значений."""
         self.key_value_cache.clear()
-                for layer in self.layers:
+        for layer in self.layers:
             if hasattr(layer.attention, "cache"):
-                layer.attention.cache.clear() 
+                layer.attention.cache.clear()
+
+    def train_step(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        labels: Optional[torch.Tensor] = None,
+        learning_rate: float = 1e-5
+    ) -> Dict[str, float]:
+        """
+        Один шаг обучения модели.
+        
+        Args:
+            input_ids: Входные токены
+            attention_mask: Маска внимания
+            labels: Целевые токены
+            learning_rate: Скорость обучения
+            
+        Returns:
+            Словарь с метриками обучения
+        """
+        self.train()
+        
+        # Создание оптимизатора если еще не создан
+        if not hasattr(self, 'optimizer'):
+            self.optimizer = torch.optim.AdamW(
+                self.parameters(),
+                lr=learning_rate,
+                weight_decay=0.01
+            )
+        
+        # Прямой проход
+        outputs = self.forward(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            return_dict=True
+        )
+        
+        logits = outputs["logits"]
+        
+        # Если метки не предоставлены, используем сдвинутые входные данные
+        if labels is None:
+            labels = input_ids[:, 1:].contiguous()
+            logits = logits[:, :-1, :].contiguous()
+        
+        # Вычисление функции потерь
+        loss_fct = torch.nn.CrossEntropyLoss()
+        loss = loss_fct(
+            logits.view(-1, logits.size(-1)),
+            labels.view(-1)
+        )
+        
+        # Обратное распространение
+        loss.backward()
+        
+        # Клиппинг градиентов
+        torch.nn.utils.clip_grad_norm_(self.parameters(), 1.0)
+        
+        # Шаг оптимизатора
+        self.optimizer.step()
+        self.optimizer.zero_grad()
+        
+        return {
+            "loss": loss.item()
+        } 
